@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { api, ApiError, type EquipmentTag } from "../lib/api";
 import { useToast } from "../lib/toast";
+import { useConfirm } from "../lib/confirm";
 import PageHeader from "../components/PageHeader";
 import Modal from "../components/Modal";
 
@@ -9,6 +10,7 @@ const blank = { name: "", category: "" };
 
 export default function Equipment() {
   const toast = useToast();
+  const confirm = useConfirm();
   const [items, setItems] = useState<EquipmentTag[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<EquipmentTag | null>(null);
@@ -67,7 +69,13 @@ export default function Equipment() {
   }
 
   async function remove(t: EquipmentTag) {
-    if (!confirm(`Remove "${t.name}"? It will be removed from any events that used it.`)) return;
+    const ok = await confirm({
+      title: `Remove "${t.name}"?`,
+      body: "It'll also be removed from any events that used it. This can't be undone.",
+      confirmLabel: "Remove",
+      kind: "danger",
+    });
+    if (!ok) return;
     try {
       await api.delete(`/equipment/${t.id}`);
       toast.push("success", "Removed");

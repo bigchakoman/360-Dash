@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Pencil, Plus, Trash2, UserCheck, UserX } from "lucide-react";
 import { api, ApiError, type CrewMember } from "../lib/api";
 import { useToast } from "../lib/toast";
+import { useConfirm } from "../lib/confirm";
 import PageHeader from "../components/PageHeader";
 import Modal from "../components/Modal";
 import { fmtDate } from "../lib/format";
@@ -10,6 +11,7 @@ const blank = { name: "", phone: "", role: "", notes: "", active: true };
 
 export default function Crew() {
   const toast = useToast();
+  const confirm = useConfirm();
   const [items, setItems] = useState<CrewMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<CrewMember | null>(null);
@@ -76,7 +78,13 @@ export default function Crew() {
   }
 
   async function remove(c: CrewMember) {
-    if (!confirm(`Remove ${c.name}?`)) return;
+    const ok = await confirm({
+      title: `Remove ${c.name}?`,
+      body: "They'll be unassigned from any events that include them. This can't be undone.",
+      confirmLabel: "Remove",
+      kind: "danger",
+    });
+    if (!ok) return;
     try {
       await api.delete(`/crew/${c.id}`);
       toast.push("success", "Removed");

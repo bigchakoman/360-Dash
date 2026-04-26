@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Check, RefreshCw, Send, Trash2, X } from "lucide-react";
 import { api, ApiError, type EventDetail, type CrewMember, type EquipmentTag } from "../lib/api";
 import { useToast } from "../lib/toast";
+import { useConfirm } from "../lib/confirm";
 import PageHeader from "../components/PageHeader";
 import StatusPill from "../components/StatusPill";
 import { fmtRange, toLocalInputValue, fmtMoney } from "../lib/format";
@@ -11,6 +12,7 @@ export default function EventDetailPage() {
   const { id } = useParams();
   const eventId = Number(id);
   const toast = useToast();
+  const confirm = useConfirm();
   const [ev, setEv] = useState<EventDetail | null>(null);
   const [crewOptions, setCrewOptions] = useState<CrewMember[]>([]);
   const [tagOptions, setTagOptions] = useState<EquipmentTag[]>([]);
@@ -75,7 +77,13 @@ export default function EventDetailPage() {
   }
 
   async function unassignCrew(cid: number) {
-    if (!confirm("Remove this crew from the event?")) return;
+    const ok = await confirm({
+      title: "Remove from this event?",
+      body: "They'll be unassigned. We won't send a follow-up message — let them know directly.",
+      confirmLabel: "Remove",
+      kind: "danger",
+    });
+    if (!ok) return;
     try {
       await api.delete(`/events/${eventId}/crew/${cid}`);
       toast.push("success", "Removed");

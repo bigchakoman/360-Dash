@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -7,11 +7,16 @@ import EventDetail from "./pages/EventDetail";
 import Crew from "./pages/Crew";
 import Equipment from "./pages/Equipment";
 import Reports from "./pages/Reports";
+import ChangePassword from "./pages/ChangePassword";
 import { useAuth } from "./lib/auth";
 
 function Protected({ children }: { children: React.ReactNode }) {
-  const { isAuthed } = useAuth();
+  const { isAuthed, mustChangePassword } = useAuth();
+  const location = useLocation();
   if (!isAuthed) return <Navigate to="/login" replace />;
+  if (mustChangePassword && location.pathname !== "/change-password") {
+    return <Navigate to="/change-password" replace />;
+  }
   return <>{children}</>;
 }
 
@@ -19,6 +24,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/change-password" element={<Protected><ChangePassword /></Protected>} />
       <Route element={<Protected><Layout /></Protected>}>
         <Route index element={<Dashboard />} />
         <Route path="events" element={<Events />} />

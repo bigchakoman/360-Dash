@@ -58,13 +58,17 @@ export const api = {
   delete: <T = void>(p: string) => request<T>("DELETE", p),
 
   login: (email: string, password: string) =>
-    request<{ access_token: string; token_type: string }>(
-      "POST",
-      "/auth/login",
-      { email, password },
-      { auth: false }
-    ),
+    request<TokenResponse>("POST", "/auth/login", { email, password }, { auth: false }),
+
+  changePassword: (current_password: string, new_password: string) =>
+    request<TokenResponse>("POST", "/auth/change-password", { current_password, new_password }),
 };
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  must_change_password: boolean;
+}
 
 // --- Domain types (mirror backend Pydantic schemas) ---
 export type EventStatus = "upcoming" | "completed" | "cancelled";
