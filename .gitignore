@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Env / secrets
+.env
+*.env.local
+backend/.env
+credentials.json
+token.json
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+.claude/
+
+# Misc
+.tmp/
+*.log
+
+# Brand source zip (the extracted brand-guidelines/ folder is committed)
+*.zip

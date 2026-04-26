@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+/* ----------------------------------------------------------------------
+ * 360 Events Aruba — brand tokens (Tailwind v4 @theme)
+ * Brand Blue leads (60%), Canvas (30%), Gold OR Coral as single accent (7%/2%),
+ * Midnight Ink for text (1%). Archivo for UI; Fraunces italic for editorial.
+ * ---------------------------------------------------------------------- */
+@theme {
+  --color-brand-blue: #134896;
+  --color-brand-blue-50: #eef3fb;
+  --color-brand-blue-100: #d6e2f4;
+  --color-brand-blue-200: #adc5e9;
+  --color-brand-blue-500: #134896;
+  --color-brand-blue-600: #0f3a78;
+  --color-brand-blue-700: #0b2c5a;
+  --color-canvas: #ffffff;
+  --color-canvas-soft: #f6f4ee;
+  --color-gold: #e4b54a;
+  --color-gold-soft: #f7e7b6;
+  --color-coral: #e8593e;
+  --color-coral-soft: #fbd4cb;
+  --color-ink: #0a0f1c;
+  --color-ink-soft: #4a5063;
+  --color-line: #e4e1d8;
+
+  --font-sans: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Fraunces", ui-serif, Georgia, serif;
+
+  --radius-card: 14px;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-canvas-soft);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+.editorial {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 300;
+}
+
+.eyebrow {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-brand-blue);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 60ms ease;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btn-primary { background: var(--color-brand-blue); color: white; }
+.btn-primary:hover:not(:disabled) { background: var(--color-brand-blue-600); }
+
+.btn-ghost { background: transparent; color: var(--color-brand-blue); border-color: var(--color-line); }
+.btn-ghost:hover:not(:disabled) { background: white; }
+
+.btn-coral { background: var(--color-coral); color: white; }
+.btn-coral:hover:not(:disabled) { filter: brightness(0.95); }
+
+.btn-gold { background: var(--color-gold); color: var(--color-ink); }
+.btn-gold:hover:not(:disabled) { filter: brightness(0.96); }
+
+.btn-danger { background: transparent; color: var(--color-coral); border-color: var(--color-coral-soft); }
+.btn-danger:hover:not(:disabled) { background: var(--color-coral-soft); }
+
+.input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-line);
+  background: white;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: var(--color-ink);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--color-brand-blue);
+  box-shadow: 0 0 0 3px var(--color-brand-blue-100);
+}
+textarea.input { min-height: 5.5rem; resize: vertical; }
+
+.card {
+  background: white;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  padding: 1.25rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.6rem;
+  background: var(--color-brand-blue-50);
+  color: var(--color-brand-blue);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.chip-gold { background: var(--color-gold-soft); color: #6a4a0d; }
+.chip-coral { background: var(--color-coral-soft); color: #7a2618; }
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.pill-upcoming { background: var(--color-brand-blue-50); color: var(--color-brand-blue); }
+.pill-completed { background: #e8f4ec; color: #1f6b3f; }
+.pill-cancelled { background: var(--color-coral-soft); color: #7a2618; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #d8d4c8; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #b9b4a4; }
