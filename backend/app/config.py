@@ -17,9 +17,9 @@ class Settings(BaseSettings):
     admin_email: str = "admin@360eventsaruba.com"
     admin_password: str = "change-me"
 
-    twilio_account_sid: str = ""
-    twilio_auth_token: str = ""
-    twilio_whatsapp_from: str = "whatsapp:+14155238886"
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:8000/auth/google/callback"
 
     @property
     def cors_origins_list(self) -> list[str]:

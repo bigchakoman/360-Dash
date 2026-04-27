@@ -7,6 +7,7 @@ import EventDetail from "./pages/EventDetail";
 import Crew from "./pages/Crew";
 import Equipment from "./pages/Equipment";
 import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
 import ChangePassword from "./pages/ChangePassword";
 import { useAuth } from "./lib/auth";
 
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="crew" element={<Crew />} />
         <Route path="equipment" element={<Equipment />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

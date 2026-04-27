@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
-import phonenumbers
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 EventStatus = Literal["upcoming", "completed", "cancelled"]
@@ -32,21 +31,10 @@ class ChangePasswordRequest(BaseModel):
 # --- Crew ---
 class CrewBase(BaseModel):
     name: str = Field(min_length=1, max_length=120)
-    phone: str
+    email: EmailStr | None = None
     role: str | None = None
     notes: str | None = None
     active: bool = True
-
-    @field_validator("phone")
-    @classmethod
-    def validate_phone(cls, v: str) -> str:
-        try:
-            parsed = phonenumbers.parse(v, None)
-        except phonenumbers.NumberParseException as e:
-            raise ValueError(f"Invalid phone number: {e}") from e
-        if not phonenumbers.is_valid_number(parsed):
-            raise ValueError("Invalid phone number")
-        return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
 
 
 class CrewCreate(CrewBase):
@@ -55,23 +43,16 @@ class CrewCreate(CrewBase):
 
 class CrewUpdate(BaseModel):
     name: str | None = None
-    phone: str | None = None
+    email: EmailStr | None = None
     role: str | None = None
     notes: str | None = None
     active: bool | None = None
-
-    @field_validator("phone")
-    @classmethod
-    def validate_phone(cls, v: str | None) -> str | None:
-        if v is None:
-            return None
-        return CrewBase.validate_phone(v)
 
 
 class CrewOut(ORMBase):
     id: int
     name: str
-    phone: str
+    email: str | None
     role: str | None
     notes: str | None
     active: bool
@@ -104,9 +85,9 @@ class EquipmentOut(ORMBase):
 class CrewAssignmentOut(BaseModel):
     crew_member: CrewOut
     assigned_at: datetime
-    notified_at: datetime | None
-    notification_sid: str | None
-    notification_error: str | None
+    invited_at: datetime | None
+    cal_invite_status: str | None
+    calendar_error: str | None
     confirmation_status: ConfirmationStatus
 
     model_config = ConfigDict(from_attributes=True)
@@ -153,6 +134,7 @@ class EventListItem(ORMBase):
     start_at: datetime
     end_at: datetime
     status: EventStatus
+    google_calendar_event_id: str | None
 
 
 class EventOut(ORMBase):
@@ -165,6 +147,7 @@ class EventOut(ORMBase):
     description: str | None
     status: EventStatus
     price_cents: int | None
+    google_calendar_event_id: str | None
     created_at: datetime
     updated_at: datetime
     crew_assignments: list[CrewAssignmentOut] = []
@@ -173,6 +156,13 @@ class EventOut(ORMBase):
 
 class CrewAssignRequest(BaseModel):
     crew_member_id: int
+
+
+# --- Google OAuth status ---
+class GoogleCalendarStatus(BaseModel):
+    connected: bool
+    owner_email: str | None = None
+    calendar_id: str | None = None
 
 
 # --- Summary ---

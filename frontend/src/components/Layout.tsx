@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { CalendarDays, Home, KeyRound, LogOut, Menu, Tag, Users, X, BarChart3 } from "lucide-react";
+import { BarChart3, CalendarDays, Home, KeyRound, LogOut, Menu, Settings, Tag, Users, X } from "lucide-react";
 import { useAuth } from "../lib/auth";
 
 const navItems = [
@@ -9,6 +9,7 @@ const navItems = [
   { to: "/crew", label: "Crew", icon: Users },
   { to: "/equipment", label: "Equipment", icon: Tag },
   { to: "/reports", label: "Reports", icon: BarChart3 },
+  { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 function SidebarContents({ onNav }: { onNav?: () => void }) {

@@ -28,7 +28,7 @@ class CrewMember(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
-    phone: Mapped[str] = mapped_column(String(32), nullable=False)
+    email: Mapped[str | None] = mapped_column(String(255))
     role: Mapped[str | None] = mapped_column(String(80))
     notes: Mapped[str | None] = mapped_column(Text)
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -60,6 +60,7 @@ class Event(Base):
     description: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(20), default="upcoming", nullable=False)
     price_cents: Mapped[int | None] = mapped_column(Integer)
+    google_calendar_event_id: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -78,9 +79,9 @@ class EventCrew(Base):
     event_id: Mapped[int] = mapped_column(ForeignKey("event.id", ondelete="CASCADE"), primary_key=True)
     crew_member_id: Mapped[int] = mapped_column(ForeignKey("crew_member.id", ondelete="CASCADE"), primary_key=True)
     assigned_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    notified_at: Mapped[datetime | None] = mapped_column(DateTime)
-    notification_sid: Mapped[str | None] = mapped_column(String(64))
-    notification_error: Mapped[str | None] = mapped_column(Text)
+    invited_at: Mapped[datetime | None] = mapped_column(DateTime)
+    cal_invite_status: Mapped[str | None] = mapped_column(String(64))
+    calendar_error: Mapped[str | None] = mapped_column(Text)
     confirmation_status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
 
     event: Mapped[Event] = relationship(back_populates="crew_assignments")
@@ -95,3 +96,16 @@ class EventEquipment(Base):
 
     event: Mapped[Event] = relationship(back_populates="equipment_links")
     tag: Mapped[EquipmentTag] = relationship(back_populates="event_links", lazy="joined")
+
+
+class GoogleOAuth(Base):
+    __tablename__ = "google_oauth"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    access_token: Mapped[str] = mapped_column(Text, nullable=False)
+    refresh_token: Mapped[str] = mapped_column(Text, nullable=False)
+    token_expiry: Mapped[datetime | None] = mapped_column(DateTime)
+    calendar_id: Mapped[str] = mapped_column(String(255), default="primary", nullable=False)
+    owner_email: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())

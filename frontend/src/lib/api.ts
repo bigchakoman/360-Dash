@@ -1,7 +1,7 @@
 const TOKEN_KEY = "360dash.token";
 
 // In dev, Vite proxies /api → http://127.0.0.1:8000 (see vite.config.ts).
-// In prod, set VITE_API_BASE to the absolute backend URL (e.g. https://api.360events.app).
+// In prod, Caddy serves /api/* → uvicorn.
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? "/api";
 
 export const tokenStore = {
@@ -62,12 +62,22 @@ export const api = {
 
   changePassword: (current_password: string, new_password: string) =>
     request<TokenResponse>("POST", "/auth/change-password", { current_password, new_password }),
+
+  googleStatus: () => request<GoogleCalendarStatus>("GET", "/auth/google/status"),
+  googleConnect: () => request<{ auth_url: string }>("GET", "/auth/google/connect"),
+  googleDisconnect: () => request<void>("DELETE", "/auth/google/disconnect"),
 };
 
 export interface TokenResponse {
   access_token: string;
   token_type: string;
   must_change_password: boolean;
+}
+
+export interface GoogleCalendarStatus {
+  connected: boolean;
+  owner_email: string | null;
+  calendar_id: string | null;
 }
 
 // --- Domain types (mirror backend Pydantic schemas) ---
@@ -77,7 +87,7 @@ export type ConfirmationStatus = "pending" | "confirmed" | "declined";
 export interface CrewMember {
   id: number;
   name: string;
-  phone: string;
+  email: string | null;
   role: string | null;
   notes: string | null;
   active: boolean;
@@ -94,9 +104,9 @@ export interface EquipmentTag {
 export interface CrewAssignment {
   crew_member: CrewMember;
   assigned_at: string;
-  notified_at: string | null;
-  notification_sid: string | null;
-  notification_error: string | null;
+  invited_at: string | null;
+  cal_invite_status: string | null;
+  calendar_error: string | null;
   confirmation_status: ConfirmationStatus;
 }
 
@@ -112,6 +122,7 @@ export interface EventListItem {
   start_at: string;
   end_at: string;
   status: EventStatus;
+  google_calendar_event_id: string | null;
 }
 
 export interface EventDetail extends EventListItem {

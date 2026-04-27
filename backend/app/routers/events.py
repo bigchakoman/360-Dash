@@ -13,7 +13,7 @@ from ..schemas import (
     EventOut,
     EventUpdate,
 )
-from ..services import whatsapp
+from ..services import google_calendar
 
 router = APIRouter(prefix="/events", tags=["events"], dependencies=[Depends(get_current_admin)])
 
@@ -31,6 +31,10 @@ def _load_event(db: Session, event_id: int) -> Event:
     if not event:
         raise HTTPException(404, "Event not found")
     return event
+
+
+def _crew_emails(event: Event) -> list[str]:
+    return [a.crew_member.email for a in event.crew_assignments if a.crew_member.email]
 
 
 @router.get("", response_model=list[EventListItem])
@@ -57,6 +61,13 @@ def create_event(payload: EventCreate, db: Session = Depends(get_db)) -> Event:
     event = Event(**payload.model_dump())
     db.add(event)
     db.commit()
+    db.refresh(event)
+
+    gcal_id = google_calendar.create_event(db, event, [])
+    if gcal_id:
+        event.google_calendar_event_id = gcal_id
+        db.commit()
+
     return _load_event(db, event.id)
 
 
@@ -76,7 +87,12 @@ def update_event(event_id: int, payload: EventUpdate, db: Session = Depends(get_
     if event.end_at <= event.start_at:
         raise HTTPException(400, "end_at must be after start_at")
     db.commit()
-    return _load_event(db, event_id)
+
+    event = _load_event(db, event_id)
+    if event.google_calendar_event_id:
+        google_calendar.update_event(db, event.google_calendar_event_id, event, _crew_emails(event))
+
+    return event
 
 
 @router.delete("/{event_id}", status_code=204)
@@ -84,8 +100,11 @@ def delete_event(event_id: int, db: Session = Depends(get_db)) -> None:
     event = db.get(Event, event_id)
     if not event:
         raise HTTPException(404, "Event not found")
+    gcal_id = event.google_calendar_event_id
     db.delete(event)
     db.commit()
+    if gcal_id:
+        google_calendar.delete_event(db, gcal_id)
 
 
 # --- Crew assignment ---
@@ -108,19 +127,30 @@ def assign_crew(event_id: int, payload: CrewAssignRequest, db: Session = Depends
     db.add(link)
     db.commit()
 
-    # Fire WhatsApp asynchronously-style (sync for simplicity, but failure-tolerant)
-    try:
-        result = whatsapp.send_assignment(crew, event)
-        if result.ok:
-            link.notified_at = datetime.now(timezone.utc)
-            link.notification_sid = result.sid
-            link.notification_error = None
-        else:
-            link.notification_error = result.error
-        db.commit()
-    except RuntimeError as e:
-        link.notification_error = str(e)
-        db.commit()
+    # Add crew member to the Google Calendar event
+    event = _load_event(db, event_id)
+    if event.google_calendar_event_id and crew.email:
+        err = google_calendar.update_event(
+            db, event.google_calendar_event_id, event, _crew_emails(event)
+        )
+        link = db.query(EventCrew).filter(
+            and_(EventCrew.event_id == event_id, EventCrew.crew_member_id == crew.id)
+        ).first()
+        if link:
+            if err:
+                link.calendar_error = err
+            else:
+                link.invited_at = datetime.now(timezone.utc)
+                link.cal_invite_status = "invite_sent"
+                link.calendar_error = None
+            db.commit()
+    elif crew.email is None:
+        link = db.query(EventCrew).filter(
+            and_(EventCrew.event_id == event_id, EventCrew.crew_member_id == crew.id)
+        ).first()
+        if link:
+            link.calendar_error = "No email — add an email to this crew member to invite them"
+            db.commit()
 
     return _load_event(db, event_id)
 
@@ -135,29 +165,12 @@ def unassign_crew(event_id: int, crew_id: int, db: Session = Depends(get_db)) ->
     db.delete(link)
     db.commit()
 
-
-@router.post("/{event_id}/crew/{crew_id}/resend", response_model=EventOut)
-def resend_assignment(event_id: int, crew_id: int, db: Session = Depends(get_db)) -> Event:
-    link = db.query(EventCrew).filter(
-        and_(EventCrew.event_id == event_id, EventCrew.crew_member_id == crew_id)
-    ).first()
-    if not link:
-        raise HTTPException(404, "Assignment not found")
-    event = db.get(Event, event_id)
-    crew = db.get(CrewMember, crew_id)
-    try:
-        result = whatsapp.send_assignment(crew, event)
-        if result.ok:
-            link.notified_at = datetime.now(timezone.utc)
-            link.notification_sid = result.sid
-            link.notification_error = None
-        else:
-            link.notification_error = result.error
-        db.commit()
-    except RuntimeError as e:
-        link.notification_error = str(e)
-        db.commit()
-    return _load_event(db, event_id)
+    # Update calendar event to remove this attendee
+    event = _load_event(db, event_id)
+    if event.google_calendar_event_id:
+        google_calendar.update_event(
+            db, event.google_calendar_event_id, event, _crew_emails(event)
+        )
 
 
 # --- Equipment tagging ---

@@ -9,6 +9,7 @@ from .routers import auth as auth_router
 from .routers import crew as crew_router
 from .routers import equipment as equipment_router
 from .routers import events as events_router
+from .routers import google_auth as google_auth_router
 from .routers import summary as summary_router
 
 
@@ -45,4 +46,5 @@ app.include_router(auth_router.router)
 app.include_router(crew_router.router)
 app.include_router(equipment_router.router)
 app.include_router(events_router.router)
+app.include_router(google_auth_router.router)
 app.include_router(summary_router.router)

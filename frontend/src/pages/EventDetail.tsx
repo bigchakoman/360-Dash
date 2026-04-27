@@ -1,12 +1,45 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Check, RefreshCw, Send, Trash2, X } from "lucide-react";
+import { ArrowLeft, CalendarCheck, CalendarX, Check, Clock, Mail, Trash2, X } from "lucide-react";
 import { api, ApiError, type EventDetail, type CrewMember, type EquipmentTag } from "../lib/api";
 import { useToast } from "../lib/toast";
 import { useConfirm } from "../lib/confirm";
 import PageHeader from "../components/PageHeader";
 import StatusPill from "../components/StatusPill";
 import { fmtRange, toLocalInputValue, fmtMoney } from "../lib/format";
+
+function CalStatus({ invited_at, cal_invite_status, calendar_error, email }: {
+  invited_at: string | null;
+  cal_invite_status: string | null;
+  calendar_error: string | null;
+  email: string | null;
+}) {
+  if (!email) {
+    return <span className="text-[var(--color-ink-soft)] italic">No email — add one to invite</span>;
+  }
+  if (calendar_error) {
+    return (
+      <span className="text-[var(--color-coral)] inline-flex items-center gap-1">
+        <CalendarX size={12} /> {calendar_error}
+      </span>
+    );
+  }
+  if (invited_at) {
+    return (
+      <span className="text-[var(--color-brand-blue)] inline-flex items-center gap-1">
+        <CalendarCheck size={12} /> Invite sent
+        {cal_invite_status && cal_invite_status !== "invite_sent" && (
+          <span className="ml-1 opacity-70">· {cal_invite_status}</span>
+        )}
+      </span>
+    );
+  }
+  return (
+    <span className="text-[var(--color-ink-soft)] inline-flex items-center gap-1">
+      <Clock size={12} /> Pending calendar sync
+    </span>
+  );
+}
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -57,7 +90,7 @@ export default function EventDetailPage() {
         status: editForm.status,
         price_cents: editForm.price_cents ? Math.round(parseFloat(editForm.price_cents) * 100) : null,
       });
-      toast.push("success", "Event updated");
+      toast.push("success", "Event updated — calendar invite updated");
       await load();
     } catch (err) {
       toast.push("error", err instanceof ApiError ? err.message : "Save failed");
@@ -68,7 +101,7 @@ export default function EventDetailPage() {
     if (!crewToAdd) return;
     try {
       await api.post(`/events/${eventId}/crew`, { crew_member_id: Number(crewToAdd) });
-      toast.push("success", "Crew assigned — WhatsApp sent");
+      toast.push("success", "Crew assigned — Google Calendar invite sent");
       setCrewToAdd("");
       await load();
     } catch (err) {
@@ -79,27 +112,17 @@ export default function EventDetailPage() {
   async function unassignCrew(cid: number) {
     const ok = await confirm({
       title: "Remove from this event?",
-      body: "They'll be unassigned. We won't send a follow-up message — let them know directly.",
+      body: "They'll be unassigned and removed from the Google Calendar event.",
       confirmLabel: "Remove",
       kind: "danger",
     });
     if (!ok) return;
     try {
       await api.delete(`/events/${eventId}/crew/${cid}`);
-      toast.push("success", "Removed");
+      toast.push("success", "Removed from event and calendar");
       await load();
     } catch (err) {
       toast.push("error", err instanceof ApiError ? err.message : "Remove failed");
-    }
-  }
-
-  async function resend(cid: number) {
-    try {
-      await api.post(`/events/${eventId}/crew/${cid}/resend`);
-      toast.push("success", "Re-sent WhatsApp");
-      await load();
-    } catch (err) {
-      toast.push("error", err instanceof ApiError ? err.message : "Resend failed");
     }
   }
 
@@ -143,7 +166,20 @@ export default function EventDetailPage() {
         eyebrow={ev.client_name ?? "Event"}
         title={ev.title}
         tagline={fmtRange(ev.start_at, ev.end_at)}
-        actions={<StatusPill status={ev.status} />}
+        actions={
+          <div className="flex items-center gap-3">
+            {ev.google_calendar_event_id ? (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-brand-blue)]">
+                <Check size={14} /> On Google Calendar
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-xs text-[var(--color-ink-soft)]">
+                Calendar not synced
+              </span>
+            )}
+            <StatusPill status={ev.status} />
+          </div>
+        }
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -190,7 +226,7 @@ export default function EventDetailPage() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-semibold mb-1">Description (sent to crew)</label>
+            <label className="block text-sm font-semibold mb-1">Description</label>
             <textarea className="input" rows={4} value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} />
           </div>
           <div className="flex justify-end pt-1">
@@ -211,7 +247,7 @@ export default function EventDetailPage() {
                 ))}
               </select>
               <button className="btn btn-primary" onClick={assignCrew} disabled={!crewToAdd}>
-                <Send size={14} /> Notify
+                <Mail size={14} /> Invite
               </button>
             </div>
 
@@ -224,25 +260,21 @@ export default function EventDetailPage() {
                 <li key={a.crew_member.id} className="flex items-start justify-between gap-2 p-2 rounded-lg bg-[var(--color-canvas-soft)]">
                   <div className="min-w-0">
                     <div className="font-semibold text-sm truncate">{a.crew_member.name}</div>
-                    <div className="text-xs text-[var(--color-ink-soft)] font-mono">{a.crew_member.phone}</div>
+                    {a.crew_member.email && (
+                      <div className="text-xs text-[var(--color-ink-soft)]">{a.crew_member.email}</div>
+                    )}
                     <div className="text-[11px] mt-1">
-                      {a.notified_at ? (
-                        <span className="text-[var(--color-brand-blue)] inline-flex items-center gap-1"><Check size={12} /> WhatsApp delivered</span>
-                      ) : a.notification_error ? (
-                        <span className="text-[var(--color-coral)] inline-flex items-center gap-1"><X size={12} /> {a.notification_error}</span>
-                      ) : (
-                        <span className="text-[var(--color-ink-soft)]">Pending…</span>
-                      )}
+                      <CalStatus
+                        invited_at={a.invited_at}
+                        cal_invite_status={a.cal_invite_status}
+                        calendar_error={a.calendar_error}
+                        email={a.crew_member.email}
+                      />
                     </div>
                   </div>
-                  <div className="flex flex-col gap-1 shrink-0">
-                    <button className="btn btn-ghost text-xs px-2 py-1" onClick={() => resend(a.crew_member.id)} title="Resend WhatsApp">
-                      <RefreshCw size={12} />
-                    </button>
-                    <button className="btn btn-danger text-xs px-2 py-1" onClick={() => unassignCrew(a.crew_member.id)} title="Remove">
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
+                  <button className="btn btn-danger text-xs px-2 py-1 shrink-0" onClick={() => unassignCrew(a.crew_member.id)} title="Remove">
+                    <Trash2 size={12} />
+                  </button>
                 </li>
               ))}
             </ul>

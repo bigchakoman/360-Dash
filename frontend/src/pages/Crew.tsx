@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Pencil, Plus, Trash2, UserCheck, UserX } from "lucide-react";
+import { Mail, Pencil, Plus, Trash2, UserCheck, UserX } from "lucide-react";
 import { api, ApiError, type CrewMember } from "../lib/api";
 import { useToast } from "../lib/toast";
 import { useConfirm } from "../lib/confirm";
@@ -7,7 +7,7 @@ import PageHeader from "../components/PageHeader";
 import Modal from "../components/Modal";
 import { fmtDate } from "../lib/format";
 
-const blank = { name: "", phone: "", role: "", notes: "", active: true };
+const blank = { name: "", email: "", role: "", notes: "", active: true };
 
 export default function Crew() {
   const toast = useToast();
@@ -40,7 +40,7 @@ export default function Crew() {
     setEditing(c);
     setForm({
       name: c.name,
-      phone: c.phone,
+      email: c.email ?? "",
       role: c.role ?? "",
       notes: c.notes ?? "",
       active: c.active,
@@ -55,7 +55,7 @@ export default function Crew() {
     setError(null);
     const payload = {
       name: form.name.trim(),
-      phone: form.phone.trim(),
+      email: form.email.trim() || null,
       role: form.role.trim() || null,
       notes: form.notes.trim() || null,
       active: form.active,
@@ -113,7 +113,7 @@ export default function Crew() {
             <tr className="text-[11px] uppercase tracking-wider text-[var(--color-ink-soft)]">
               <th className="px-5 py-3">Name</th>
               <th className="px-5 py-3">Role</th>
-              <th className="px-5 py-3">WhatsApp</th>
+              <th className="px-5 py-3">Email</th>
               <th className="px-5 py-3">Status</th>
               <th className="px-5 py-3">Added</th>
               <th className="px-5 py-3"></th>
@@ -132,7 +132,15 @@ export default function Crew() {
               <tr key={c.id} className="border-t border-[var(--color-line)]">
                 <td className="px-5 py-3 font-semibold">{c.name}</td>
                 <td className="px-5 py-3 text-[var(--color-ink-soft)]">{c.role ?? "—"}</td>
-                <td className="px-5 py-3 font-mono text-xs">{c.phone}</td>
+                <td className="px-5 py-3 text-xs">
+                  {c.email ? (
+                    <span className="inline-flex items-center gap-1 text-[var(--color-ink-soft)]">
+                      <Mail size={12} className="shrink-0" />{c.email}
+                    </span>
+                  ) : (
+                    <span className="text-[var(--color-ink-soft)] italic">No email</span>
+                  )}
+                </td>
                 <td className="px-5 py-3">
                   {c.active ? (
                     <span className="inline-flex items-center gap-1 text-[var(--color-brand-blue)] text-xs font-semibold">
@@ -166,15 +174,17 @@ export default function Crew() {
             <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           </div>
           <div>
-            <label className="block text-sm font-semibold mb-1">WhatsApp number (E.164)</label>
+            <label className="block text-sm font-semibold mb-1">Email</label>
             <input
               className="input"
-              placeholder="+13055551234"
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              required
+              type="email"
+              placeholder="name@example.com"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
-            <p className="text-xs text-[var(--color-ink-soft)] mt-1">Include country code, e.g. +297 for Aruba.</p>
+            <p className="text-xs text-[var(--color-ink-soft)] mt-1">
+              Used for Google Calendar invites. Leave blank if they don't need invites.
+            </p>
           </div>
           <div>
             <label className="block text-sm font-semibold mb-1">Role</label>
