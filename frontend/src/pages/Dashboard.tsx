@@ -1,39 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarDays, Clock, DollarSign, Users } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { api, type EventListItem, type MonthSummary } from "../lib/api";
 import PageHeader from "../components/PageHeader";
 import StatusPill from "../components/StatusPill";
-import { fmtMoney, fmtRange } from "../lib/format";
-
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  accent = "blue",
-}: {
-  icon: typeof Clock;
-  label: string;
-  value: string;
-  accent?: "blue" | "gold" | "coral";
-}) {
-  const accentColor = accent === "gold"
-    ? "var(--color-gold)"
-    : accent === "coral"
-    ? "var(--color-coral)"
-    : "var(--color-brand-blue)";
-  return (
-    <div className="card flex items-center gap-4">
-      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white shrink-0" style={{ background: accentColor }}>
-        <Icon size={20} />
-      </div>
-      <div>
-        <div className="text-xs uppercase tracking-wider text-[var(--color-ink-soft)] font-semibold">{label}</div>
-        <div className="text-2xl font-bold mt-0.5">{value}</div>
-      </div>
-    </div>
-  );
-}
+import { fmtRange } from "../lib/format";
 
 export default function Dashboard() {
   const now = new Date();
@@ -67,16 +38,16 @@ export default function Dashboard() {
         <div className="card text-[var(--color-ink-soft)]">Loading…</div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <StatCard icon={CalendarDays} label="Events this month" value={String(summary?.event_count ?? 0)} />
-            <StatCard icon={Clock} label="Hours booked" value={(summary?.total_hours ?? 0).toFixed(1)} accent="gold" />
-            <StatCard icon={DollarSign} label="Revenue" value={fmtMoney(summary?.revenue_cents ?? 0)} />
-            <StatCard
-              icon={Users}
-              label="Top crew"
-              value={summary?.top_crew[0]?.name ?? "—"}
-              accent="coral"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 max-w-sm">
+            <div className="card flex items-center gap-4">
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white shrink-0 bg-[var(--color-brand-blue)]">
+                <CalendarDays size={20} />
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-wider text-[var(--color-ink-soft)] font-semibold">Events this month</div>
+                <div className="text-2xl font-bold mt-0.5">{summary?.event_count ?? 0}</div>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

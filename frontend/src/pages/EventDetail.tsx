@@ -27,7 +27,7 @@ function CalStatus({ invited_at, cal_invite_status, calendar_error, email }: {
   if (invited_at) {
     return (
       <span className="text-[var(--color-brand-blue)] inline-flex items-center gap-1">
-        <CalendarCheck size={12} /> Invite sent
+        <CalendarCheck size={12} /> Added to calendar
         {cal_invite_status && cal_invite_status !== "invite_sent" && (
           <span className="ml-1 opacity-70">· {cal_invite_status}</span>
         )}
@@ -36,7 +36,7 @@ function CalStatus({ invited_at, cal_invite_status, calendar_error, email }: {
   }
   return (
     <span className="text-[var(--color-ink-soft)] inline-flex items-center gap-1">
-      <Clock size={12} /> Pending calendar sync
+      <Clock size={12} /> Not yet synced
     </span>
   );
 }
@@ -63,12 +63,15 @@ export default function EventDetailPage() {
     setEv(e);
     setCrewOptions(crew);
     setTagOptions(tags);
+    const durationHours = Math.round(
+      (new Date(e.end_at).getTime() - new Date(e.start_at).getTime()) / 36000
+    ) / 100;
     setEditForm({
       title: e.title,
       client_name: e.client_name ?? "",
       location: e.location ?? "",
       start_at: toLocalInputValue(e.start_at),
-      end_at: toLocalInputValue(e.end_at),
+      duration_hours: String(durationHours),
       description: e.description ?? "",
       status: e.status,
       price_cents: e.price_cents != null ? (e.price_cents / 100).toString() : "",
@@ -80,12 +83,15 @@ export default function EventDetailPage() {
     e.preventDefault();
     setSavingEdit(true);
     try {
+      const endAt = new Date(
+        new Date(editForm.start_at).getTime() + (parseFloat(editForm.duration_hours) || 1) * 3600 * 1000
+      ).toISOString();
       await api.patch<EventDetail>(`/events/${eventId}`, {
         title: editForm.title,
         client_name: editForm.client_name || null,
         location: editForm.location || null,
         start_at: new Date(editForm.start_at).toISOString(),
-        end_at: new Date(editForm.end_at).toISOString(),
+        end_at: endAt,
         description: editForm.description || null,
         status: editForm.status,
         price_cents: editForm.price_cents ? Math.round(parseFloat(editForm.price_cents) * 100) : null,
@@ -206,8 +212,8 @@ export default function EventDetailPage() {
               <input type="datetime-local" className="input" value={editForm.start_at} onChange={(e) => setEditForm({ ...editForm, start_at: e.target.value })} />
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-1">End</label>
-              <input type="datetime-local" className="input" value={editForm.end_at} onChange={(e) => setEditForm({ ...editForm, end_at: e.target.value })} />
+              <label className="block text-sm font-semibold mb-1">Duration (hours)</label>
+              <input type="number" className="input" min="0.5" max="24" step="0.5" value={editForm.duration_hours} onChange={(e) => setEditForm({ ...editForm, duration_hours: e.target.value })} placeholder="e.g. 4" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -216,7 +222,6 @@ export default function EventDetailPage() {
               <select className="input" value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}>
                 <option value="upcoming">upcoming</option>
                 <option value="completed">completed</option>
-                <option value="cancelled">cancelled</option>
               </select>
             </div>
             <div>

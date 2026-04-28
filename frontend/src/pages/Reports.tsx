@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api, type YearSummary, type MonthSummary } from "../lib/api";
 import PageHeader from "../components/PageHeader";
-import { fmtMoney, monthName } from "../lib/format";
+import { monthName } from "../lib/format";
 
 const BLUE = "#134896";
 
@@ -36,7 +36,6 @@ export default function Reports() {
   const chartData = (yearSummary?.by_month ?? []).map((m) => ({
     month: monthName(m.month).slice(0, 3),
     events: m.event_count,
-    hours: m.total_hours,
   }));
 
   return (
@@ -44,7 +43,7 @@ export default function Reports() {
       <PageHeader
         eyebrow="Insights"
         title="Reports"
-        tagline="Look back across the season — events, hours, revenue, and crew."
+        tagline="Look back across the season — events, crew, and equipment."
       />
 
       <div className="card mb-6 flex items-center gap-3 flex-wrap">
@@ -68,10 +67,8 @@ export default function Reports() {
 
       {!loading && yearSummary && monthSummary && (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             <StatCard label={`${year} events`} value={String(yearSummary.event_count)} />
-            <StatCard label={`${year} hours`} value={yearSummary.total_hours.toFixed(1)} />
-            <StatCard label={`${year} revenue`} value={fmtMoney(yearSummary.revenue_cents)} />
             <StatCard label={`${monthName(month)} events`} value={String(monthSummary.event_count)} />
           </div>
 

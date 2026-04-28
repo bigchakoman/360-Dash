@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { BarChart3, CalendarDays, Home, KeyRound, LogOut, Menu, Settings, Tag, Users, X } from "lucide-react";
+import { BarChart3, CalendarDays, Home, LogOut, Menu, Settings, Tag, Users, X } from "lucide-react";
 import { useAuth } from "../lib/auth";
 
 const navItems = [
@@ -46,13 +46,6 @@ function SidebarContents({ onNav }: { onNav?: () => void }) {
           </NavLink>
         ))}
       </nav>
-      <NavLink
-        to="/change-password"
-        onClick={onNav}
-        className="mt-6 flex items-center gap-2 text-sm text-white/80 hover:text-white px-3 py-2 rounded-lg"
-      >
-        <KeyRound size={16} /> Change password
-      </NavLink>
       <button
         onClick={() => { onNav?.(); logout(); }}
         className="flex items-center gap-2 text-sm text-white/80 hover:text-white px-3 py-2 rounded-lg"

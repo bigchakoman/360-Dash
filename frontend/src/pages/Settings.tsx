@@ -18,7 +18,7 @@ export default function Settings() {
     try {
       setStatus(await api.googleStatus());
     } catch {
-      // not critical
+      setStatus({ connected: false, owner_email: null, calendar_id: null });
     }
   }
 

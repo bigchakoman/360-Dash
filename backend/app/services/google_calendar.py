@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+import logging
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -6,15 +7,17 @@ from sqlalchemy.orm import Session
 from ..config import get_settings
 from ..models import Event, GoogleOAuth
 
+log = logging.getLogger(__name__)
 
-def _get_credentials(db: Session) -> Any | None:
-    """Return a valid Credentials object, refreshing if needed. None if not connected."""
+
+def _get_credentials(db: Session) -> Any:
+    """Return a valid Credentials object, refreshing if needed. Raises RuntimeError if not connected."""
     from google.oauth2.credentials import Credentials
     from google.auth.transport.requests import Request
 
     record = db.query(GoogleOAuth).first()
     if not record:
-        return None
+        raise RuntimeError("Google Calendar not connected — go to Settings to connect")
 
     s = get_settings()
     creds = Credentials(
@@ -25,9 +28,10 @@ def _get_credentials(db: Session) -> Any | None:
         client_secret=s.google_client_secret,
     )
     if record.token_expiry:
-        creds.expiry = record.token_expiry.replace(tzinfo=timezone.utc)
+        creds.expiry = record.token_expiry  # stored as naive UTC; google-auth expects naive UTC
 
     if creds.expired and creds.refresh_token:
+        log.info("Google Calendar: refreshing expired token")
         creds.refresh(Request())
         record.access_token = creds.token
         if creds.expiry:
@@ -76,52 +80,45 @@ def _calendar_id(db: Session) -> str:
     return record.calendar_id if record else "primary"
 
 
-def create_event(db: Session, event: Event, attendee_emails: list[str]) -> str | None:
-    """Creates a Google Calendar event. Returns the Google event ID, or None on failure."""
+def create_event(db: Session, event: Event, attendee_emails: list[str]) -> str:
+    """Creates a Google Calendar event. Returns the Google event ID. Raises on failure."""
     creds = _get_credentials(db)
-    if not creds:
-        return None
-    try:
-        body = _event_body(event, attendee_emails)
-        result = (
-            _service(creds)
-            .events()
-            .insert(calendarId=_calendar_id(db), body=body, sendUpdates="all")
-            .execute()
-        )
-        return result.get("id")
-    except Exception:
-        return None
+    body = _event_body(event, attendee_emails)
+    log.info("Google Calendar: creating event '%s' with attendees %s", event.title, attendee_emails)
+    result = (
+        _service(creds)
+        .events()
+        .insert(calendarId=_calendar_id(db), body=body, sendUpdates="all")
+        .execute()
+    )
+    gcal_id = result.get("id")
+    log.info("Google Calendar: created event id=%s", gcal_id)
+    return gcal_id
 
 
-def update_event(db: Session, google_event_id: str, event: Event, attendee_emails: list[str]) -> str | None:
-    """Updates an existing Google Calendar event. Returns error string or None."""
+def update_event(db: Session, google_event_id: str, event: Event, attendee_emails: list[str]) -> None:
+    """Updates an existing Google Calendar event. Raises on failure."""
     creds = _get_credentials(db)
-    if not creds:
-        return None
-    try:
-        body = _event_body(event, attendee_emails)
-        _service(creds).events().update(
-            calendarId=_calendar_id(db),
-            eventId=google_event_id,
-            body=body,
-            sendUpdates="all",
-        ).execute()
-        return None
-    except Exception as e:
-        return str(e)
+    body = _event_body(event, attendee_emails)
+    log.info("Google Calendar: updating event id=%s attendees=%s", google_event_id, attendee_emails)
+    _service(creds).events().update(
+        calendarId=_calendar_id(db),
+        eventId=google_event_id,
+        body=body,
+        sendUpdates="all",
+    ).execute()
+    log.info("Google Calendar: update_event ok")
 
 
 def delete_event(db: Session, google_event_id: str) -> None:
-    """Deletes a Google Calendar event, cancelling attendee invites."""
-    creds = _get_credentials(db)
-    if not creds:
-        return
+    """Deletes a Google Calendar event, cancelling attendee invites. Logs but does not raise."""
     try:
+        creds = _get_credentials(db)
         _service(creds).events().delete(
             calendarId=_calendar_id(db),
             eventId=google_event_id,
             sendUpdates="all",
         ).execute()
-    except Exception:
-        pass
+        log.info("Google Calendar: deleted event id=%s", google_event_id)
+    except Exception as e:
+        log.error("Google Calendar: delete_event failed: %s", e)
