@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     admin_email: str = "admin@360eventsaruba.com"
     admin_password: str = "change-me"
 
+    frontend_url: str = "http://localhost:5173"
+
     google_client_id: str = ""
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:8000/auth/google/callback"

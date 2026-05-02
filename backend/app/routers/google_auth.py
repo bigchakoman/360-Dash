@@ -113,10 +113,7 @@ def google_callback(code: str, db: Session = Depends(get_db)):
         db.add(record)
     db.commit()
 
-    # Determine the frontend origin to build the redirect
-    cors = s.cors_origins_list
-    frontend_origin = cors[0] if cors else ""
-    return RedirectResponse(url=f"{frontend_origin}/settings?connected=1")
+    return RedirectResponse(url=f"{s.frontend_url}/settings?connected=1")
 
 
 @router.delete("/disconnect", status_code=204, dependencies=[Depends(get_current_admin)])
